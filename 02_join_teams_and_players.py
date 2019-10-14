@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+Merge the team and player stats to get aggregated stats for each game, including oppositions stats.
 """
 
 import pandas as pd

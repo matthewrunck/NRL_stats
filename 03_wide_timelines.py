@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 12 12:52:16 2019
 
-@author: Lenovo
-"""
+
 import seaborn as sns
 import pandas as pd
 

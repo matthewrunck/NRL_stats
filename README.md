@@ -47,16 +47,16 @@ This can be replicated by running the 'getdata.py' script if desired.
     information for every field goal attempt, inclding the match-time, scores when field goal was attempted, and the score after 80 minutes 
     
     'decider.py'
-    Simulates 
+    Determines the effect of a field goal attempt by simulating match outcomes with and without the field goal attempt. Probabilities are estimated by Monte Carlo sampling.
     
-    4. required packages:
-      selenium
-      bs4
-      numpy
-      pandas
-      seaborn
+    
+    4. required packages:\
+      selenium\
+      bs4\
+      numpy\
+      pandas\
+      seaborn\
       matplotlib
-      
 
 
 

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+Spyder Editor
 
-
-
+This is a temporary script file.
 """
+
 from selenium import webdriver 
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By 
@@ -15,11 +16,21 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.common.action_chains import ActionChains
 import os 
 
-chrome_options = Options()
+#chrome_options = Options()
 # 
-chrome_options.add_argument("--headless")
-chrome_options.add_argument('--disable-gpu')
-chrome_options.add_argument('--log-level=3')
+#chrome_options.add_argument("--headless")
+#chrome_options.add_argument('--disable-gpu')
+#chrome_options.add_argument('--log-level=3')
+
+
+
+
+chrome_options = webdriver.ChromeOptions()
+
+chrome_options.page_load_strategy = 'normal'
+    
+chrome_options.add_argument("--start-maximized")
+driver = webdriver.Chrome(options=chrome_options)
 
 
 
@@ -83,15 +94,16 @@ def get_player_stats(table):
 
 
 
+
 def get_all_player_stats(soup):
       
     df=pd.DataFrame()
     for table in soup.find_all('table'):
-        newdf=get_player_stats(table)
-        df=df.append(newdf)
+        newdf=pd.DataFrame(get_player_stats(table))
+        df=pd.concat([df,newdf])
     df=df.drop_duplicates()
     #Get Round Number and date
-    df['Round']=soup.find("p", class_="match-centre-title__date").get_text().split(' ')[1]
+    df['Round']=soup.find("p", class_="match-header__title").get_text().split(' ')[1]
     df['date']=soup.find("time")['datetime']
     return df
 
@@ -117,14 +129,14 @@ def get_timeline(soup):
         
     df1=pd.DataFrame(data)
     df1.loc[df1['Event Type'].str.contains("Interchange"),'Team']=df1['Event Type'].str.split(' ').str.get(0)
-    df1.loc[df1['Event Type'].str.contains("Interchange"),'Event Type']=df1['Event Type'].str.split(' ',1).str.get(1)
+    df1.loc[df1['Event Type'].str.contains("Interchange"),'Event Type']=df1['Event Type'].str.split(' ',n=1).str.get(1)
     
     return df1
 
 
 def get_team_stats(soup):
     j ={}
-    stats = soup.find_all('div', class_="u-spacing-pb-medium u-spacing-pt-small u-width-100")
+    stats = soup.find_all('div', class_="u-spacing-pb-24 u-spacing-pt-16 u-width-100")
     for stat in stats:
         text=stat.find(class_="stats-bar-chart__title").get_text().strip() if stat.find( class_="stats-bar-chart__title") else None
         
@@ -139,10 +151,18 @@ def get_team_stats(soup):
         l =list(filter(lambda a: a != '', k))
         j[text]=l
     
-    
-    j['Completions (%)']= list(filter(lambda a: '%' in a, j['Completion Rate']))    
-    j['Completed Sets Ratio']=list(filter(lambda a: '/' in a, j['Completion Rate']))   
-    j.pop('Completion Rate', None)
+    try:
+        j['Completions (%)']= list(filter(lambda a: '%' in a, j['Completion Rate']))    
+    except:
+        j['Completion (%)']='na'
+    try:
+        j['Completed Sets Ratio']=list(filter(lambda a: '/' in a, j['Completion Rate']))   
+    except:
+        j['Completed Sets Ratio']='na'
+    try:
+        j.pop('Completion Rate', None)
+    except:
+        pass
     for k in j.keys():
         j[k]=j[k][0:2]
         
@@ -153,20 +173,27 @@ def get_team_stats(soup):
 
 
 
+
+
 def get_game_stats(url):
         
-    driver = webdriver.Chrome(options=chrome_options)
+    options = webdriver.ChromeOptions()
+
+    options.page_load_strategy = 'normal'
     
+    options.add_argument("--start-maximized")
+    driver = webdriver.Chrome(options=options)
+    wait = WebDriverWait(driver,30)
     #Go to game website
     driver.get(url)
     driver.implicitly_wait(30)
     #Wait until 'Latest' tab then click
-    element = WebDriverWait(driver, 20).until(
-    EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[1]')))
+    chart = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[2]')))
+    driver.execute_script("arguments[0].scrollIntoView(true)",chart)
 
-
-    ActionChains(driver).move_to_element(element).perform()
-    element.click()
+    element = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[2]')))
+    ActionChains(driver).move_to_element(element).click().perform()
+    #element.click()
     soup = BeautifulSoup(driver.page_source, 'lxml')
     #Get names of home and away teams
     home = soup.find('p', class_="match-team__name match-team__name--home").get_text().strip()
@@ -176,14 +203,18 @@ def get_game_stats(url):
     #Get timeline stats
     df1 = get_timeline(soup)
     df1['Match'] = match_name
-    
+    driver.get(url)
+    driver.implicitly_wait(30)
+    chart = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[5]')))
+    driver.execute_script("arguments[0].scrollIntoView(true)",chart)
     #Go to 'player stats' tab
+    driver.implicitly_wait(30)
     element = WebDriverWait(driver, 20).until(
-    EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[4]')))
-    ActionChains(driver).move_to_element(element).perform()
+    EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[5]')))
+    ActionChains(driver).move_to_element(element).click().perform()
+
     
-    
-    element.click()
+    #element.click()
     soup = BeautifulSoup(driver.page_source, 'lxml')
     
     #get individual player stats
@@ -192,11 +223,13 @@ def get_game_stats(url):
     
     
     #Go to 'team stats' tab
+    chart = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[4]')))
+    driver.execute_script("arguments[0].scrollIntoView(true)",chart)
     element = WebDriverWait(driver, 20).until(
-    EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[3]')))
+    EC.element_to_be_clickable((By.XPATH, '//*[@id="tabs-match-centre-"]/div[1]/div/div/ul/li[4]')))
+    ActionChains(driver).move_to_element(element).click().perform()
 
-    ActionChains(driver).move_to_element(element).perform()
-    element.click()
+    #element.click()
     soup = BeautifulSoup(driver.page_source, 'lxml')
     
     #get team stats
@@ -209,11 +242,28 @@ def get_game_stats(url):
 
 
 
-
-
-
+def get_round(url):
+    match_urls=[]
+    games=[]
+    driver = webdriver.Chrome(options=chrome_options)
     
-def get_year(year, start=0, stop=26):
+    #Go to game website
+    driver.get(url)
+    driver.implicitly_wait(30)
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+    for game in soup.find_all("a", class_="match--highlighted u-flex-column u-flex-align-items-center u-width-100"):
+        match_urls.append(game['href'])
+
+    for match_url in match_urls:
+        print(match_url)
+        match_name,df1,df2,df3 = get_game_stats('https://www.nrl.com'+match_url)
+        g = {'Match':match_name,'Timeline':df1,'Player Stats':df2,'Team':df3}
+        games.append(g)
+    
+    return games
+    
+
+def get_year(year, start=0, stop=27):
     path = os.getcwd() + '\\data'
     
     yearpath= path + '\\' + str(year)
@@ -226,7 +276,7 @@ def get_year(year, start=0, stop=26):
         print ("Successfully created the directory %s" % yearpath)
         
     for i in range(start,stop):
-        url= 'https://www.nrl.com/draw/?competition=111&season='+str(year)+'&round='+str(i+1)
+        url= 'https://www.nrl.com/draw/?competition=111&round='+str(i+1)+'&season='+str(year)
         
         roundpath = yearpath +'\\' +  'Round'+str(i+1)
         
@@ -237,7 +287,10 @@ def get_year(year, start=0, stop=26):
             continue
         else:  
             print ("Successfully created the directory %s" % roundpath)
-        round_stats = get_round(url)   
+        try: 
+            round_stats = get_round(url)   
+        except:
+            pass
         for item in round_stats:
             matchpath = roundpath +'\\'+ item['Match'].replace(' ','')
             item['Player Stats']['Year']=year
@@ -258,17 +311,13 @@ def get_year(year, start=0, stop=26):
             team_path = matchpath + '\\team.csv'
             item['Team'].to_csv(team_path)
 
-#Get stats from 2013 to 2019
+#Get stats from 2013 to 2023
 
 try:
     os.mkdir(os.getcwd() + '\\data')
 except:
     pass
 
-for i in range(2013,2020):
+for i in range(2013,2024):
     get_year(i)
     
-
-
-
-

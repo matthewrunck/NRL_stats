@@ -261,17 +261,19 @@ def get_round(url):
     return games
     
 
-def get_year(year, start=0, stop=27):
+def get_year(year, start=0, stop=31):
     path = os.getcwd() + '\\data'
     
     yearpath= path + '\\' + str(year)
-    
-    try:  
-        os.mkdir(yearpath)
-    except OSError:  
-        print ("Creation of the directory %s failed" % yearpath)
-    else:  
-        print ("Successfully created the directory %s" % yearpath)
+    if not os.path.exists(yearpath):
+        os.makedirs(yearpath)
+    #try:  
+    #    os.mkdir(yearpath)
+    #except OSError:  
+    #    print ("Creation of the directory %s failed" % yearpath)
+    #except print ("Directory %s already exists" % yearpath))
+    #else:  
+    #    print ("Successfully created the directory %s" % yearpath)
         
     for i in range(start,stop):
         url= 'https://www.nrl.com/draw/?competition=111&round='+str(i+1)+'&season='+str(year)
